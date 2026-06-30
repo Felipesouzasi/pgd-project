@@ -26,8 +26,8 @@ jobs:
       run: npm run lint --if-present
       working-directory: ./backend
 
-    - name: Backend - Run E2E Tests with Coverage
-      run: npx jest --config jest-e2e.config.js --coverage
+    - name: Backend - Run All Tests with Coverage
+      run: npx jest --coverage
       working-directory: ./backend
 
     - name: Frontend - Install Dependencies
