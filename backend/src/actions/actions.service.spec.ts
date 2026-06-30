@@ -9,7 +9,7 @@ describe('ActionsService', () => {
   let mockPool: any;
   let mockClient: any;
 
-  const mockUser: JwtUser = { sub: 'test', login: 'test', name: 'Test', email: 'test@ex.com', permissoes: [1, 2, 3], pgd_acao_visao: 'ADM', priv_admin: 'S' };
+  const mockUser = { sub: 'test', name: 'Test', email: 'test@ex.com', permissoes: [1, 2, 3], pgd_acao_visao: 'ADM', priv_admin: 'S' } as any;
 
   beforeEach(async () => {
     mockClient = {
@@ -37,7 +37,7 @@ describe('ActionsService', () => {
   });
 
   it('findAll', async () => {
-    await service.findAll({ pg: 1, limit: 10, search: 'test', status_id: 1 }, mockUser);
+    await service.findAll({ pg: 1, limit: 10, search: 'test', status_id: 1 } as any, mockUser);
     expect(mockPool.query).toHaveBeenCalled();
   });
 
@@ -92,13 +92,15 @@ describe('ActionsService', () => {
   });
 
   it('deleteDespesa', async () => {
+    mockPool.query.mockResolvedValueOnce({ rowCount: 1 });
     await service.deleteDespesa(1, 1);
     expect(mockPool.query).toHaveBeenCalled();
   });
 
   it('remove', async () => {
+    mockClient.query.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rowCount: 1 }).mockResolvedValueOnce({ rows: [] });
     await service.remove(1);
-    expect(mockPool.query).toHaveBeenCalled();
+    expect(mockClient.query).toHaveBeenCalled();
   });
 
   it('findOne', async () => {
@@ -162,22 +164,22 @@ describe('ActionsService', () => {
     await service.saveComprovacao(1, {
       vlr_investido_ar: 100,
       vlr_investido_fornecedor: 100,
-      sem_vlr_investido_ar: false,
-      sem_vlr_investido_forn: false,
+      sem_vlr_investido_ar: 'N',
+      sem_vlr_investido_forn: 'N',
       publico_realizado: 10,
       obs: 'test'
-    }, mockUser);
+    } as any, mockUser);
     
     expect(mockClient.query).toHaveBeenCalledWith('COMMIT');
   });
 
   it('addDespesa', async () => {
-    await service.addDespesa(1, { tipo_id: 1, vlr_total: 100, fornecedor: 'test', nf_numero: '123' });
+    await service.addDespesa(1, { tipo_id: 1, vlr_total: 100, fornecedor: 'test', nf_numero: '123' } as any);
     expect(mockPool.query).toHaveBeenCalled();
   });
 
   it('saveFileReference', async () => {
-    await service.saveFileReference(1, 'lista_presenca_1', 'file.jpg');
+    await service.saveFileReference(1, 'lista_presenca', 'file.jpg');
     expect(mockPool.query).toHaveBeenCalled();
   });
 });

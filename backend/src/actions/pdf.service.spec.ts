@@ -14,7 +14,8 @@ describe('PdfService', () => {
           tp_acao: 'DT', 
           dt_acao: new Date(),
           vlr_investido_ar: 100,
-          vlr_investido_fornecedor: 100
+          vlr_investido_fornecedor: 100,
+          foto_path: 'mock.jpg'
         }] 
       }),
     };

@@ -9,7 +9,7 @@ describe('ActionsController', () => {
   let actionsService: jest.Mocked<Partial<ActionsService>>;
   let pdfService: jest.Mocked<Partial<PdfService>>;
 
-  const mockUser: JwtUser = { sub: 'test', login: 'test', name: 'Test', email: 'test@ex.com', permissoes: [] };
+  const mockUser = { sub: 'test', name: 'Test', email: 'test@ex.com', permissoes: [] } as any;
 
   beforeEach(async () => {
     actionsService = {
@@ -54,7 +54,7 @@ describe('ActionsController', () => {
   });
 
   it('findAll', () => {
-    controller.findAll({}, mockUser);
+    controller.findAll({} as any, mockUser);
     expect(actionsService.findAll).toHaveBeenCalled();
   });
 
@@ -104,7 +104,7 @@ describe('ActionsController', () => {
   });
 
   it('create error', async () => {
-    actionsService.create.mockRejectedValueOnce(new Error('err'));
+    (actionsService.create as jest.Mock).mockRejectedValueOnce(new Error('err'));
     await expect(controller.create({} as any, mockUser)).rejects.toThrow();
   });
 
@@ -118,7 +118,7 @@ describe('ActionsController', () => {
 
   it('downloadPdf error', async () => {
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
-    pdfService.generateAcaoPdf.mockRejectedValueOnce(new Error('err'));
+    (pdfService.generateAcaoPdf as jest.Mock).mockRejectedValueOnce(new Error('err'));
     await controller.downloadPdf(1, res as any);
     expect(res.status).toHaveBeenCalledWith(500);
   });
@@ -144,7 +144,7 @@ describe('ActionsController', () => {
   });
 
   it('saveComprovacao error', async () => {
-    actionsService.saveComprovacao.mockRejectedValueOnce(new Error('err'));
+    (actionsService.saveComprovacao as jest.Mock).mockRejectedValueOnce(new Error('err'));
     await expect(controller.saveComprovacao(1, {} as any, mockUser)).rejects.toThrow();
   });
 
@@ -154,7 +154,7 @@ describe('ActionsController', () => {
   });
 
   it('addDespesa error', async () => {
-    actionsService.addDespesa.mockRejectedValueOnce(new Error('err'));
+    (actionsService.addDespesa as jest.Mock).mockRejectedValueOnce(new Error('err'));
     await expect(controller.addDespesa(1, {} as any)).rejects.toThrow();
   });
 
