@@ -19,7 +19,12 @@ api.interceptors.response.use(
         window.location.replace('/login');
       }
     }
-    return Promise.reject(err as Error);
+    if (err.response?.data?.message) {
+      err.message = Array.isArray(err.response.data.message)
+        ? err.response.data.message[0]
+        : err.response.data.message;
+    }
+    return Promise.reject(err);
   },
 );
 
