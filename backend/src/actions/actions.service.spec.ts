@@ -98,7 +98,11 @@ describe('ActionsService', () => {
   });
 
   it('remove', async () => {
-    mockClient.query.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rowCount: 1 }).mockResolvedValueOnce({ rows: [] });
+    mockClient.query
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rowCount: 1 }) // DELETE status
+      .mockResolvedValueOnce({ rowCount: 1 }) // DELETE acao
+      .mockResolvedValueOnce({ rows: [] }); // COMMIT
     await service.remove(1);
     expect(mockClient.query).toHaveBeenCalled();
   });
