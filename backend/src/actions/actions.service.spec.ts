@@ -13,7 +13,7 @@ describe('ActionsService', () => {
 
   beforeEach(async () => {
     mockClient = {
-      query: jest.fn().mockResolvedValue({ rows: [{ id: 1, acao_id: 1 }] }),
+      query: jest.fn().mockResolvedValue({ rows: [{ id: 1, acao_id: 1 }], rowCount: 1 }),
       release: jest.fn(),
     };
 
@@ -98,11 +98,6 @@ describe('ActionsService', () => {
   });
 
   it('remove', async () => {
-    mockClient.query
-      .mockResolvedValueOnce({ rows: [] }) // BEGIN
-      .mockResolvedValueOnce({ rowCount: 1 }) // DELETE status
-      .mockResolvedValueOnce({ rowCount: 1 }) // DELETE acao
-      .mockResolvedValueOnce({ rows: [] }); // COMMIT
     await service.remove(1);
     expect(mockClient.query).toHaveBeenCalled();
   });
