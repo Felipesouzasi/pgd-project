@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+/* ─── Light mode overrides ────────────────────────────────────────────────
+   As páginas usam cores dark hardcoded. Em modo claro, remapeamos cada
+   classe Tailwind: superfícies escuras → claras, texto branco → escuro. */
+
+html:not(.dark) .bg-gray-950          { background-color: #f8fafc !important; }
+html:not(.dark) .bg-gray-900          { background-color: #ffffff !important; }
+html:not(.dark) .bg-gray-900\/30      { background-color: rgba(248,250,252,.3) !important; }
+html:not(.dark) .bg-gray-800          { background-color: #f1f5f9 !important; }
+
+html:not(.dark) .text-white           { color: #0f172a !important; }
+html:not(.dark) .text-white\/80       { color: rgba(15,23,42,.80) !important; }
+html:not(.dark) .text-white\/75       { color: rgba(15,23,42,.75) !important; }
+html:not(.dark) .text-white\/70       { color: rgba(15,23,42,.70) !important; }
+html:not(.dark) .text-white\/65       { color: rgba(15,23,42,.65) !important; }
+html:not(.dark) .text-white\/55       { color: rgba(15,23,42,.55) !important; }
+html:not(.dark) .text-white\/50       { color: rgba(15,23,42,.50) !important; }
+html:not(.dark) .text-white\/45       { color: rgba(15,23,42,.45) !important; }
+html:not(.dark) .text-white\/40       { color: rgba(15,23,42,.40) !important; }
+html:not(.dark) .text-white\/30       { color: rgba(15,23,42,.30) !important; }
+html:not(.dark) .text-white\/25       { color: rgba(15,23,42,.25) !important; }
+html:not(.dark) .text-white\/20       { color: rgba(15,23,42,.20) !important; }
+
+html:not(.dark) .text-gray-300        { color: #374151 !important; }
+html:not(.dark) .text-gray-400        { color: #4b5563 !important; }
+html:not(.dark) .text-gray-500        { color: #6b7280 !important; }
+html:not(.dark) .text-gray-600        { color: #9ca3af !important; }
+
+html:not(.dark) .border-gray-800      { border-color: #e2e8f0 !important; }
+html:not(.dark) .border-gray-800\/60  { border-color: rgba(226,232,240,.6) !important; }
+html:not(.dark) .border-white\/5      { border-color: rgba(0,0,0,.05) !important; }
+html:not(.dark) .border-white\/8      { border-color: rgba(0,0,0,.08) !important; }
+html:not(.dark) .border-white\/10     { border-color: rgba(0,0,0,.10) !important; }
+html:not(.dark) .border-white\/20     { border-color: rgba(0,0,0,.20) !important; }
+
+html:not(.dark) .bg-white\/3          { background-color: rgba(0,0,0,.03) !important; }
+html:not(.dark) .bg-white\/4          { background-color: rgba(0,0,0,.04) !important; }
+html:not(.dark) .bg-white\/5          { background-color: rgba(0,0,0,.05) !important; }
+html:not(.dark) .bg-white\/8          { background-color: rgba(0,0,0,.08) !important; }
+html:not(.dark) .bg-white\/12         { background-color: rgba(0,0,0,.12) !important; }
+html:not(.dark) .bg-white\/15         { background-color: rgba(0,0,0,.12) !important; }
+
+html:not(.dark) .hover\:bg-gray-800:hover     { background-color: #f1f5f9 !important; }
+html:not(.dark) .hover\:bg-gray-800\/40:hover { background-color: rgba(241,245,249,.4) !important; }
+html:not(.dark) .hover\:bg-white\/3:hover     { background-color: rgba(0,0,0,.03) !important; }
+html:not(.dark) .hover\:bg-white\/10:hover    { background-color: rgba(0,0,0,.08) !important; }
+html:not(.dark) .hover\:bg-white\/15:hover    { background-color: rgba(0,0,0,.10) !important; }
+html:not(.dark) .hover\:text-white:hover      { color: #0f172a !important; }
+
+html:not(.dark) .placeholder-gray-600::placeholder    { color: #cbd5e1 !important; }
+html:not(.dark) .placeholder-white\/20::placeholder   { color: rgba(15,23,42,.30) !important; }
+
+html:not(.dark) .bg-\[#0d0f17\]  { background-color: #f8fafc !important; }
+html:not(.dark) .bg-\[#1a1d27\]  { background-color: #ffffff !important; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+::-webkit-scrollbar-corner { background: #f1f5f9; }
+
+html.dark ::-webkit-scrollbar-track { background: #111827; }
+html.dark ::-webkit-scrollbar-thumb { background: #374151; }
+html.dark ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+html.dark ::-webkit-scrollbar-corner { background: #111827; }
