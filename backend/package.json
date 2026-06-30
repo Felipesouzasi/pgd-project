@@ -12,6 +12,7 @@
     "@nestjs/jwt": "^10.0.0",
     "@nestjs/passport": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/swagger": "^7.4.2",
     "@types/multer": "^2.1.0",
     "@types/nodemailer": "^8.0.1",
     "@types/pdfkit": "^0.17.6",
@@ -26,7 +27,8 @@
     "pdfkit": "^0.19.1",
     "pg": "^8.11.0",
     "reflect-metadata": "^0.1.13",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",

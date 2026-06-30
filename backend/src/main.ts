@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
@@ -57,6 +58,15 @@ async function bootstrap() {
   app.enableCors({ origin: buildCorsValidator(), credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: false, transform: true }));
   app.setGlobalPrefix('api');
+
+  const config = new DocumentBuilder()
+    .setTitle('PGD API')
+    .setDescription('Documentação Oficial da API do Planejamento e Gestão de Despesas')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT ?? 3001;
   const host = process.env.HOST ?? '0.0.0.0';
