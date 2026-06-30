@@ -3,6 +3,7 @@ import {
   BadRequestException, ForbiddenException, OnModuleInit,
 } from '@nestjs/common';
 import { Pool } from 'pg';
+import * as nodemailer from 'nodemailer';
 import { PG_POOL } from '../database/database.module';
 import { QueryActionsDto } from './dto/query-actions.dto';
 import { CreateActionDto } from './dto/create-action.dto';
@@ -266,7 +267,14 @@ export class ActionsService implements OnModuleInit {
 
   async transitionStatus(id: number, dto: TransitionStatusDto, user: JwtUser) {
     const { rows: acoes } = await this.pool.query(
-      `SELECT acao_id, status_id FROM vw_pgd_acao WHERE acao_id = $1`,
+      `SELECT v.acao_id, v.status_id,
+              u.email AS autor_email, u.name AS autor_nome,
+              ger.email AS gerente_email, ger.name AS gerente_nome
+       FROM vw_pgd_acao v
+       LEFT JOIN ad_user_cfg c ON c.com_id_sap::text = v.consultor_id::text
+       LEFT JOIN sec_users u ON u.login = c.login
+       LEFT JOIN sec_users ger ON ger.login = c.gerente_login
+       WHERE v.acao_id = $1`,
       [id],
     );
     if (!acoes[0]) throw new NotFoundException(`Ação ${id} não encontrada`);
@@ -344,6 +352,49 @@ export class ActionsService implements OnModuleInit {
       throw err;
     } finally {
       client.release();
+    }
+
+    // -- Disparo de Notificação (SMTP) --
+    // Só tenta enviar se houver config de SMTP, para não quebrar local
+    const smtpConfigured = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
+    if (smtpConfigured) {
+      const acao = acoes[0];
+      const isReprovacao = [7, 8, 13, 15, 18].includes(targetStatusId);
+      const isAprovacaoFinal = [11, 21, 23].includes(targetStatusId);
+      
+      let destinatario = '';
+      if (isReprovacao || isAprovacaoFinal) destinatario = acao.autor_email; // Volta pro consultor
+      else if (targetStatusId === 1 || targetStatusId === 5) destinatario = acao.gerente_email; // Vai pro gerente avaliar
+
+      if (destinatario && !destinatario.includes('seuemail')) {
+        try {
+          const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT || 587),
+            secure: Number(process.env.SMTP_PORT || 587) === 465,
+            auth: {
+              user: process.env.SMTP_USER,
+              pass: process.env.SMTP_PASS,
+            },
+          });
+          
+          await transporter.sendMail({
+            from: process.env.SMTP_FROM || process.env.SMTP_USER,
+            to: destinatario,
+            subject: `Atualização de Ação #${id} - PGD`,
+            html: `
+              <p>Olá,</p>
+              <p>A ação <b>#${id}</b> mudou de status.</p>
+              <p>Novo status: <b>Status ID ${targetStatusId}</b></p>
+              ${dto.justificativa ? `<p>Justificativa: <i>${dto.justificativa}</i></p>` : ''}
+              <p><a href="${process.env.APP_URL || 'http://localhost:5173'}/acoes/${id}">Clique aqui para acessar a ação</a></p>
+            `,
+          });
+          console.log(`[Email] Notificação enviada para ${destinatario} referente à ação ${id}`);
+        } catch (e) {
+          console.error('[Email] Erro ao disparar email de notificação:', e);
+        }
+      }
     }
 
     return { ok: true, novo_status_id: targetStatusId };
