@@ -14,13 +14,13 @@ const fmtMoney = (v: unknown) =>
   Number(v ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
 const fmtDate = (v: unknown): string => {
-  if (!v) return '—';
+  if (!v) return 'Não informado';
   const d = new Date(String(v));
   return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString('pt-BR');
 };
 
 const str = (obj: Record<string, unknown>, k: string) =>
-  String(obj[k] ?? '') || '—';
+  String(obj[k] ?? '') || 'Não informado';
 
 // ── Cores ──────────────────────────────────────────────────────────────────────
 const C = {
@@ -133,7 +133,7 @@ export class PdfService {
           doc.fillColor(C.labelTxt).font('Helvetica').fontSize(7)
             .text(c.label, x, y + 5, { width: colW - 16 });
           doc.fillColor(C.valueTxt).font('Helvetica-Bold').fontSize(9)
-            .text(c.value || '—', x, y + 14, { width: colW - 16 });
+            .text(c.value || 'Não informado', x, y + 14, { width: colW - 16 });
         });
         y += h;
       };
@@ -220,7 +220,7 @@ export class PdfService {
       fieldRow([
         { label: 'Valor AR (R$)',         value: fmtMoney(acao['vlr_previsto_ar']) },
         { label: 'Valor Fornecedor (R$)', value: fmtMoney(acao['vlr_previsto_fornecedor']) },
-        { label: 'Público Previsto',      value: String(acao['publico_previsto'] ?? '—') },
+        { label: 'Público Previsto',      value: String(acao['publico_previsto'] ?? 'Não informado') },
       ], false);
       y += 4;
 
@@ -229,7 +229,7 @@ export class PdfService {
       fieldRow([
         { label: 'Valor AR (R$)',         value: fmtMoney(acao['vlr_investido_ar']) },
         { label: 'Valor Fornecedor (R$)', value: fmtMoney(acao['vlr_investido_fornecedor']) },
-        { label: 'Público Realizado',     value: String(acao['publico_realizado'] ?? '—') },
+        { label: 'Público Realizado',     value: String(acao['publico_realizado'] ?? 'Não informado') },
       ], false);
       y += 4;
 

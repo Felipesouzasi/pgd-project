@@ -10,6 +10,8 @@ module.exports = {
     'src/actions/**/*.(t|j)s',
     '!src/**/*.module.ts',
     '!src/**/*.dto.ts',
+    '!**/*.spec.(t|j)s',
+    '!**/*.e2e-spec.(t|j)s'
   ],
   coverageDirectory: './coverage',
   coverageThreshold: {

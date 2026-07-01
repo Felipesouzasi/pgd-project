@@ -13,6 +13,7 @@ services:
       - ./backend/.env
     environment:
       - DB_PASSWORD=2f$$$$XOxyk@Ut
+      - CHOKIDAR_USEPOLLING=true
     restart: unless-stopped
 
   frontend:

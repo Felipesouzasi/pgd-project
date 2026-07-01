@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   useReactTable, getCoreRowModel, flexRender,
   createColumnHelper, SortingState,
@@ -72,12 +72,23 @@ function ProgressIcon({ status }: { status: string }) {
 export default function Acoes() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [limit] = useState(50);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [statusId, setStatusId] = useState<number | undefined>(undefined);
+  const [statusId, setStatusId] = useState<number | undefined>(
+    searchParams.get('status_id') ? Number(searchParams.get('status_id')) : undefined,
+  );
+  const [dtInicio, setDtInicio] = useState<string | undefined>(searchParams.get('dt_inicio') ?? undefined);
+  const [dtFim, setDtFim]       = useState<string | undefined>(searchParams.get('dt_fim') ?? undefined);
   const [sorting, setSorting] = useState<SortingState>([]);
+
+  // Deep-link vindo do Dashboard BI: limpa a URL depois de aplicar o filtro
+  useEffect(() => {
+    if (searchParams.toString()) setSearchParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [exportOpen, setExportOpen] = useState(false);
   const [adminModalAcaoId, setAdminModalAcaoId] = useState<number | null>(null);
   const queryClient = useQueryClient();
@@ -91,10 +102,14 @@ export default function Acoes() {
   const sortDir = sorting[0] ? (sorting[0].desc ? 'desc' : 'asc') : 'desc';
 
   const { data, isFetching, refetch } = useQuery({
-    queryKey: ['acoes', page, limit, search, statusId, sortBy, sortDir],
+    queryKey: ['acoes', page, limit, search, statusId, dtInicio, dtFim, sortBy, sortDir],
     queryFn: () =>
       api.get<PaginatedResponse<Acao>>('/actions', {
-        params: { page, limit, search: search || undefined, status_id: statusId || undefined, sort_by: sortBy, sort_dir: sortDir },
+        params: {
+          page, limit, search: search || undefined, status_id: statusId || undefined,
+          dt_inicio: dtInicio || undefined, dt_fim: dtFim || undefined,
+          sort_by: sortBy, sort_dir: sortDir,
+        },
       }).then((r) => r.data),
     placeholderData: (prev) => prev,
   });
@@ -268,6 +283,16 @@ export default function Acoes() {
             <option value="">Todos os status</option>
             {statusList?.map((s) => <option key={s.status_id} value={s.status_id}>{s.nome}</option>)}
           </select>
+
+          {(statusId || dtInicio || dtFim) && (
+            <button
+              onClick={() => { setStatusId(undefined); setDtInicio(undefined); setDtFim(undefined); setPage(1); }}
+              className="flex items-center gap-1.5 bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-medium px-3 py-2 rounded-lg hover:bg-green-500/25 transition-colors"
+              title="Filtro aplicado a partir do Dashboard — clique para limpar"
+            >
+              Filtro do Dashboard ✕
+            </button>
+          )}
         </div>
 
         {/* Direita */}

@@ -102,7 +102,7 @@ CANCELADA [7] ← pode ser acionado em qualquer ponto (único status que termina
 | `GD` | Gerador de Demanda (DINAC) | `tp_acao = 'DINAC' AND consultor_id = $login` |
 | `COM` | Consultor de Vendas (AR) | `tp_acao != 'DINAC' AND consultor_id = $login` |
 | `GER` | Gerente (GR ou GU) | `consultor_id IN (SELECT login FROM ad_user_cfg WHERE gerente_login = $login)` |
-| `ADM` | Admin / Vanessa | sem filtro — vê tudo |
+| `ADM` | Admin / tamara.oliveira | sem filtro — vê tudo |
 
 > `gerente_login` ✅ já existe em `ad_user_cfg`. Relação direta: subordinado → seu gerente imediato.
 
@@ -113,8 +113,8 @@ CANCELADA [7] ← pode ser acionado em qualquer ponto (único status que termina
 | Botão | Visível para | Condição de status |
 |---|---|---|
 | **Visualizar** (era Editar) | GD, COM, GER, ADM | qualquer status |
-| **Comprovar** (verde) | GD, COM | status_id = 4 (PLANEJADA) |
-| **Analisar** (substitui Editar para gerentes) | GER | status_id IN (1, 5, 19) — onde gerente age |
+| **Comprovar** (verde) | GD, COM, ADM | status_id = 4 (PLANEJADA) |
+| **Analisar** (substitui Editar para gerentes) | GER, ADM | status_id IN (1, 5, 19) — onde gerente age |
 | **Log** | ~~removido~~ | — |
 
 > Botão "Editar" passa a se chamar "Visualizar" — a lógica de edição move para dentro do fluxo de status.

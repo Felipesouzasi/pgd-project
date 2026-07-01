@@ -115,8 +115,9 @@ function tpLabel(tp: string | null) {
 function HistoricoIcon({ statusNome }: { statusNome: string }) {
   const s = cleanStatus(statusNome).toUpperCase();
   if (s.includes('FINALIZADA'))  return <CheckCircle2 size={16} className="text-green-500" />;
-  if (s.includes('REPROVADA') || s.includes('RECUSADA') || s.includes('CANCELADA'))
-    return <XCircle size={16} className="text-red-500" />;
+  if (s.includes('CANCELADA'))     return <XCircle size={16} className="text-red-500" />;
+  if (s.includes('REPROVADA') || s.includes('RECUSADA') || s.includes('PENDENTES'))
+    return <Clock size={16} className="text-orange-400" />;
   if (s.includes('ANÁLISE') || s.includes('ANALISE'))
     return <ScanSearch size={16} className="text-purple-400" />;
   if (s.includes('AGUARDANDO') || s.includes('APROVAÇÃO'))

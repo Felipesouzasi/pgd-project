@@ -63,8 +63,9 @@ const items = splitBr(value);
 function ProgressIcon({ status }: { status: string }) {
   const s = cleanStatus(status).toUpperCase();
   if (s.includes('FINALIZADA'))    return <CheckCircle2 size={18} className="text-green-500" />;
+  if (s.includes('CANCELADA'))     return <XCircle size={18} className="text-red-500" />;
   if (s.includes('REPROVADA') || s.includes('RECUSADA') || s.includes('PENDENTES'))
-    return <XCircle size={18} className="text-red-500" />;
+    return <Clock size={18} className="text-orange-400" />;
   if (s.includes('ANÁLISE') || s.includes('ANALISE'))
     return <ScanSearch size={18} className="text-purple-400" />;
   if (s.includes('PLANEJADA'))     return <Clock size={18} className="text-green-400" />;
