@@ -284,7 +284,7 @@ export default function NovaAcao() {
   const labels    = TP_LABELS[tpAcao];
   const showFilial   = tpAcao === 'DT' || tpAcao === 'R';
   const showDtm      = tpAcao === 'DT';
-  const showTripe    = tpAcao === 'DT' || tpAcao === 'R';
+  const showTripe    = tpAcao === 'R' || tpAcao === 'DINAC';
   const showClientes = tpAcao === 'DINAC';
 
 
@@ -320,7 +320,8 @@ export default function NovaAcao() {
 
     setAtividadeId(null);
     if (tpAcao !== 'DT')    setDtmId(null);
-    if (tpAcao === 'DINAC') { setFilialId(null); setTripeId(null); }
+    if (tpAcao === 'DINAC') { setFilialId(null); }
+    if (tpAcao !== 'R' && tpAcao !== 'DINAC') setTripeId(null);
     if (tpAcao !== 'DINAC') setClientes([]);
 
     if (tpAcao === 'DINAC' && prev !== 'DINAC') {
@@ -491,13 +492,7 @@ export default function NovaAcao() {
           {/* ═══ GERENTES ═════════════════════════════════════════════════════ */}
           <div>
             <SectionTitle>Gerentes</SectionTitle>
-            <div className={`grid gap-5 ${tpAcao !== 'DINAC' ? 'grid-cols-3' : 'grid-cols-2'}`}>
-              {tpAcao !== 'DINAC' && (
-                <div>
-                  <Label>Gerente GD</Label>
-                  <ReadonlyInput value={consultorInfo?.gerente_gd ?? ''} />
-                </div>
-              )}
+            <div className="grid grid-cols-3 gap-5">
               <div>
                 <Label>{labels.gr}</Label>
                 <ReadonlyInput value={consultorInfo?.gerente_regional ?? ''} />
