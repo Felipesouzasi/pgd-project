@@ -23,11 +23,7 @@ const nav: NavItem[] = [
     ],
   },
   { to: '/visualizacao', icon: Eye,        label: 'Visualização Ações PGD' },
-  {
-    icon: BarChart2,
-    label: 'Dashboards',
-    children: [],
-  },
+  { to: '/dashboard', icon: BarChart2, label: 'Dashboard BI' },
   { to: '/acoes',        icon: LayoutGrid, label: 'Ações' },
 ];
 

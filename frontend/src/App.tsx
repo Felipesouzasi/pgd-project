@@ -10,6 +10,7 @@ import NovaAcao from './pages/NovaAcao';
 import DetalheAcao from './pages/DetalheAcao';
 import Comprovacao from './pages/Comprovacao';
 import RedefinirSenha from './pages/RedefinirSenha';
+import Dashboard from './pages/Dashboard';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -33,6 +34,7 @@ export default function App() {
               <Route path="/acoes/:id"   element={<DetalheAcao />} />
               <Route path="/acoes/:id/comprovacao" element={<Comprovacao />} />
               <Route path="/visualizacao" element={<VisualizacaoAcoes />} />
+              <Route path="/dashboard"   element={<Dashboard />} />
               <Route path="/"             element={<Navigate to="/acoes" replace />} />
             </Route>
           </Route>
