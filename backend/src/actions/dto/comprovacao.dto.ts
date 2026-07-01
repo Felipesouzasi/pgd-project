@@ -1,11 +1,21 @@
 export class ProdutoComprovacaoDto {
   produto_id!: number;
-  trabalhado?: string; // 'S' | 'N'
+  trabalhado?: string;    // 'S' | 'N'
+  is_novo?: boolean;      // true = adicionado na comprovação (planejada = N)
+  fornecedor_rtv?: string;
 }
 
 export class CulturaComprovacaoDto {
   cultura_id!: number;
-  trabalhado?: string; // 'S' | 'N'
+  trabalhado?: string;    // 'S' | 'N'
+  is_novo?: boolean;
+}
+
+export class ClienteComprovacaoDto {
+  cliente_id!: string;
+  cliente_nome?: string;
+  trabalhado?: string;    // 'S' | 'N'
+  is_novo?: boolean;
 }
 
 export class DespesaDto {
@@ -26,5 +36,6 @@ export class SaveComprovacaoDto {
   obs?: string;
   produtos?: ProdutoComprovacaoDto[];
   culturas?: CulturaComprovacaoDto[];
+  clientes?: ClienteComprovacaoDto[];
   enviar?: boolean; // se true → transiciona para status 5
 }

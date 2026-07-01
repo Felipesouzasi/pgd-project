@@ -664,29 +664,35 @@ export class ActionsService implements OnModuleInit {
         values,
       );
 
-      // Produtos
+      // Produtos — vindos do cadastro são sempre planejados; trabalhado pré-preenchido 'S'
       for (const p of dto.produtos ?? []) {
         await client.query(
           `INSERT INTO pgd_acao_produto (acao_id, produto_id, fornecedor_rtv, planejada, trabalhado)
            VALUES ($1, $2, $3, $4, $5)`,
-          [acaoId, p.produto_id, p.fornecedor_rtv ?? '', p.planejada ?? 'N', p.trabalhado ?? 'N'],
+          [acaoId, p.produto_id, p.fornecedor_rtv ?? '', p.planejada ?? 'S', p.trabalhado ?? 'S'],
         );
       }
-      // Culturas
+      // Culturas — vindas do cadastro são sempre planejadas; trabalhado pré-preenchido 'S'
       for (const c of dto.culturas ?? []) {
         await client.query(
           `INSERT INTO pgd_acao_cultura (acao_id, cultura_id, planejada, trabalhado)
            VALUES ($1, $2, $3, $4)`,
-          [acaoId, c.cultura_id, c.planejada ?? 'N', c.trabalhado ?? 'N'],
+          [acaoId, c.cultura_id, c.planejada ?? 'S', c.trabalhado ?? 'S'],
         );
       }
-      // Clientes
+      // Clientes — coluna é "planejado" (não planejada); cliente_nome opcional
       for (const cl of dto.clientes ?? []) {
         await client.query(
-          `INSERT INTO pgd_acao_cliente (acao_id, cliente_id) VALUES ($1, $2)`,
-          [acaoId, cl.cliente_id],
-        ).catch((e: unknown) => {
-          console.warn('[create] pgd_acao_cliente falhou:', (e as Error).message);
+          `INSERT INTO pgd_acao_cliente (acao_id, cliente_id, cliente_nome, planejado, trabalhado)
+           VALUES ($1, $2, $3, 'S', 'S')`,
+          [acaoId, cl.cliente_id, cl.cliente_nome ?? ''],
+        ).catch(async (e: unknown) => {
+          // Fallback: coluna cliente_nome pode não existir ainda (rodar migração 002)
+          console.warn('[create] pgd_acao_cliente completo falhou:', (e as Error).message, '— tentando sem cliente_nome');
+          await client.query(
+            `INSERT INTO pgd_acao_cliente (acao_id, cliente_id, planejado, trabalhado) VALUES ($1, $2, 'S', 'S')`,
+            [acaoId, cl.cliente_id],
+          ).catch((e2: unknown) => console.warn('[create] pgd_acao_cliente mínimo falhou:', (e2 as Error).message));
         });
       }
 
@@ -774,13 +780,12 @@ export class ActionsService implements OnModuleInit {
         [id],
       );
     }
-    const [produtosRes, culturasRes, despesasRes] = await Promise.all([
+    const [produtosRes, culturasRes, clientesRes, despesasRes] = await Promise.all([
       this.pool.query(
-        `SELECT ap.produto_id, p.produto AS nome, f.nome AS fornecedor,
+        `SELECT ap.produto_id, p.produto AS nome, ap.fornecedor_rtv AS fornecedor,
                 ap.planejada, ap.trabalhado
          FROM pgd_acao_produto ap
          JOIN pgd_produto p ON p.produto_id = ap.produto_id
-         JOIN pgd_fornecedor f ON f.fornecedor_id = p.fornecedor_id
          WHERE ap.acao_id = $1 ORDER BY p.produto`,
         [id],
       ),
@@ -792,6 +797,21 @@ export class ActionsService implements OnModuleInit {
          WHERE ac.acao_id = $1 ORDER BY c.cultura_nome`,
         [id],
       ),
+      this.pool.query(
+        `SELECT ac.cliente_id,
+                COALESCE(NULLIF(ac.cliente_nome, ''), pn.nome, ac.cliente_id) AS nome,
+                ac.planejado AS planejada, ac.trabalhado
+         FROM pgd_acao_cliente ac
+         LEFT JOIN LATERAL (
+           SELECT nome FROM sap_4hana.pn_cliente WHERE cod_pn::text = ac.cliente_id LIMIT 1
+         ) pn ON true
+         WHERE ac.acao_id = $1`,
+        [id],
+      ).catch(() => this.pool.query(
+        `SELECT cliente_id, cliente_id AS nome, planejado AS planejada, trabalhado
+         FROM pgd_acao_cliente WHERE acao_id = $1`,
+        [id],
+      ).catch(() => ({ rows: [] as Record<string, unknown>[] }))),
       this.pool.query(
         `SELECT pdc.pgd_despesa_id, pdc.dt_despesa, pdc.tp_despesa_id,
                 td.nome AS tp_despesa, pdc.vlr_despesa,
@@ -810,6 +830,7 @@ export class ActionsService implements OnModuleInit {
       acao: acaoResRaw.rows[0],
       produtos: produtosRes.rows,
       culturas: culturasRes.rows,
+      clientes: (clientesRes as { rows: Record<string, unknown>[] }).rows,
       despesas: despesasRes.rows,
     };
   }
@@ -859,23 +880,74 @@ export class ActionsService implements OnModuleInit {
         });
       }
 
-      // 2. Produtos — atualiza trabalhado
-      for (const p of dto.produtos ?? []) {
+      // 2. Produtos — planejados atualizam trabalhado; novos (is_novo) são re-inseridos
+      if (dto.produtos) {
+        // Remove os "novos" antigos (planejada = 'N') e recria a partir do payload
         await client.query(
-          `UPDATE pgd_acao_produto SET trabalhado = $1 WHERE acao_id = $2 AND produto_id = $3`,
-          [p.trabalhado ?? 'N', id, p.produto_id],
+          `DELETE FROM pgd_acao_produto WHERE acao_id = $1 AND planejada = 'N'`,
+          [id],
         );
+        for (const p of dto.produtos) {
+          if (p.is_novo) {
+            await client.query(
+              `INSERT INTO pgd_acao_produto (acao_id, produto_id, fornecedor_rtv, planejada, trabalhado)
+               VALUES ($1, $2, $3, 'N', $4)`,
+              [id, p.produto_id, p.fornecedor_rtv ?? '', p.trabalhado ?? 'S'],
+            );
+          } else {
+            await client.query(
+              `UPDATE pgd_acao_produto SET trabalhado = $1 WHERE acao_id = $2 AND produto_id = $3`,
+              [p.trabalhado ?? 'N', id, p.produto_id],
+            );
+          }
+        }
       }
 
-      // 3. Culturas — atualiza trabalhado
-      for (const c of dto.culturas ?? []) {
+      // 3. Culturas — planejadas atualizam trabalhado; novas (is_novo) são re-inseridas
+      if (dto.culturas) {
         await client.query(
-          `UPDATE pgd_acao_cultura SET trabalhado = $1 WHERE acao_id = $2 AND cultura_id = $3`,
-          [c.trabalhado ?? 'N', id, c.cultura_id],
+          `DELETE FROM pgd_acao_cultura WHERE acao_id = $1 AND planejada = 'N'`,
+          [id],
         );
+        for (const c of dto.culturas) {
+          if (c.is_novo) {
+            await client.query(
+              `INSERT INTO pgd_acao_cultura (acao_id, cultura_id, planejada, trabalhado)
+               VALUES ($1, $2, 'N', $3)`,
+              [id, c.cultura_id, c.trabalhado ?? 'S'],
+            );
+          } else {
+            await client.query(
+              `UPDATE pgd_acao_cultura SET trabalhado = $1 WHERE acao_id = $2 AND cultura_id = $3`,
+              [c.trabalhado ?? 'N', id, c.cultura_id],
+            );
+          }
+        }
       }
 
-      // 4. Transição de status se solicitado
+      // 4. Clientes (DINAC) — coluna "planejado"; planejados atualizam trabalhado; novos re-inseridos
+      if (dto.clientes) {
+        await client.query(
+          `DELETE FROM pgd_acao_cliente WHERE acao_id = $1 AND planejado = 'N'`,
+          [id],
+        ).catch((e: Error) => console.warn('[saveComprovacao] delete clientes novos falhou:', e.message));
+        for (const cl of dto.clientes) {
+          if (cl.is_novo) {
+            await client.query(
+              `INSERT INTO pgd_acao_cliente (acao_id, cliente_id, cliente_nome, planejado, trabalhado)
+               VALUES ($1, $2, $3, 'N', $4)`,
+              [id, cl.cliente_id, cl.cliente_nome ?? '', cl.trabalhado ?? 'S'],
+            ).catch((e: Error) => console.warn('[saveComprovacao] insert cliente novo falhou:', e.message));
+          } else {
+            await client.query(
+              `UPDATE pgd_acao_cliente SET trabalhado = $1 WHERE acao_id = $2 AND cliente_id = $3`,
+              [cl.trabalhado ?? 'N', id, cl.cliente_id],
+            ).catch((e: Error) => console.warn('[saveComprovacao] update cliente falhou:', e.message));
+          }
+        }
+      }
+
+      // 5. Transição de status se solicitado
       if (dto.enviar) {
         const { rows: maxRows } = await client.query(
           `SELECT COALESCE(MAX(acao_status_id), 0) + 1 AS next_id FROM pgd_acao_status`,

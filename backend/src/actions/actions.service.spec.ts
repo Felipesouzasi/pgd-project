@@ -181,4 +181,186 @@ describe('ActionsService', () => {
     await service.saveFileReference(1, 'lista_presenca', 'file.jpg');
     expect(mockPool.query).toHaveBeenCalled();
   });
+  it('create - rollback on error', async () => {
+    mockClient.query
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [{ next_id: 1 }] }) // acao_id
+      .mockResolvedValueOnce({ rows: [] }) // INSERT pgd_acao
+      .mockResolvedValueOnce({ rows: [{ next_id: 1 }] }) // acao_status_id
+      .mockRejectedValueOnce(new Error('db error')); // INSERT status fails
+
+    await expect(service.create({ tp_acao: 'DT', atividade_id: 1, clientes: [] } as any, mockUser)).rejects.toThrow('db error');
+    expect(mockClient.query).toHaveBeenCalledWith('ROLLBACK');
+  });
+
+  it('remove - rollback on error', async () => {
+    mockClient.query.mockRejectedValueOnce(new Error('db error'));
+    await expect(service.remove(1)).rejects.toThrow('db error');
+    expect(mockClient.query).toHaveBeenCalledWith('ROLLBACK');
+  });
+
+  it('getComprovacao - fallback on main query error', async () => {
+    mockPool.query
+      .mockRejectedValueOnce(new Error('query error')) // main fail
+      .mockResolvedValueOnce({ rows: [{ acao_id: 1, tp_acao: 'DT' }] }) // fallback success
+      .mockResolvedValueOnce({ rows: [] }) // produtos
+      .mockResolvedValueOnce({ rows: [] }) // culturas
+      .mockResolvedValueOnce({ rows: [] }) // clientes
+      .mockRejectedValueOnce(new Error('despesas fail')); // despesas fallback
+
+    const res = await service.getComprovacao(1);
+    expect(res.acao.acao_id).toBe(1);
+    expect(res.despesas).toEqual([]);
+  });
+
+  it('getTiposDespesa - fallback on error', async () => {
+    mockPool.query.mockRejectedValueOnce(new Error('query error'));
+    const res = await service.getTiposDespesa();
+    expect(res).toEqual([]);
+  });
+
+  it('saveComprovacao - with enviar: true and rollback on error', async () => {
+    (service as any).hasJustificativaCol = true;
+    mockClient.query
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockRejectedValueOnce(new Error('batch update fail')) // batch update
+      .mockResolvedValueOnce({ rows: [] }) // individual update fallback
+      .mockResolvedValueOnce({ rows: [] }) // individual update fallback
+      .mockResolvedValueOnce({ rows: [] }) // produtos update
+      .mockResolvedValueOnce({ rows: [] }) // culturas update
+      .mockResolvedValueOnce({ rows: [{ next_id: 1 }] }) // enviar max_id
+      .mockResolvedValueOnce({ rows: [{ nome: 'test' }] }) // enviar status_nome
+      .mockRejectedValueOnce(new Error('insert status fail')); // fails sending
+
+    await expect(service.saveComprovacao(1, {
+      vlr_investido_ar: 1,
+      vlr_investido_fornecedor: 1,
+      produtos: [{ produto_id: 1 }],
+      culturas: [{ cultura_id: 1 }],
+      enviar: true,
+    } as any, mockUser)).rejects.toThrow('insert status fail');
+    expect(mockClient.query).toHaveBeenCalledWith('ROLLBACK');
+  });
+  it('onModuleInit - fallback on query error', async () => {
+    mockPool.query.mockRejectedValueOnce(new Error('no column'));
+    await service.onModuleInit();
+    expect((service as any).hasJustificativaCol).toBe(false);
+  });
+
+  it('buildHierarchyWhere - GD and COM without com_id_sap', async () => {
+    const resGD = await (service as any).buildHierarchyWhere({ pgd_acao_visao: 'GD' } as any, []);
+    expect(resGD).toBe('1=0');
+    const resCOM = await (service as any).buildHierarchyWhere({ pgd_acao_visao: 'COM' } as any, []);
+    expect(resCOM).toBe('1=0');
+  });
+
+  it('buildHierarchyWhere - GER without subordinates', async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [{ cnt: '0' }] });
+    const res = await (service as any).buildHierarchyWhere({ pgd_acao_visao: 'GER', sub: 'test' } as any, []);
+    expect(res).toBe('1=1');
+  });
+
+  it('buildHierarchyWhere - unknown visao', async () => {
+    const res = await (service as any).buildHierarchyWhere({ pgd_acao_visao: 'XYZ' } as any, []);
+    expect(res).toBe('1=1');
+  });
+
+  it('findAll - db error', async () => {
+    mockPool.query.mockRejectedValueOnce(new Error('db error'));
+    await expect(service.findAll({ page: 1, limit: 10 } as any, mockUser)).rejects.toThrow('DB error: db error');
+  });
+
+  it('findOne - error on clientes query', async () => {
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [{ acao_id: 1 }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockRejectedValueOnce(new Error('clientes error'));
+    const res = await service.findOne(1);
+    expect(res.clientes).toEqual([]);
+  });
+
+  it('findHistory - fallback without justificativa col', async () => {
+    mockPool.query
+      .mockRejectedValueOnce(new Error('query error'))
+      .mockResolvedValueOnce({ rows: [{ acao_status_id: 1 }] });
+    const res = await service.findHistory(1);
+    expect(res).toEqual([{ acao_status_id: 1 }]);
+  });
+
+  it('getStatusList - fallback on error', async () => {
+    mockPool.query
+      .mockRejectedValueOnce(new Error('query error'))
+      .mockResolvedValueOnce({ rows: [{ status_id: 1 }] });
+    const res = await service.getStatusList(false);
+    expect(res).toEqual([{ status_id: 1 }]);
+  });
+
+  it('getFiliais - fallbacks', async () => {
+    mockPool.query
+      .mockRejectedValueOnce(new Error('query error 1'))
+      .mockRejectedValueOnce(new Error('query error 2'));
+    const res = await service.getFiliais();
+    expect(res).toEqual([]);
+  });
+
+  it('transitionStatus - action not found', async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
+    await expect(service.transitionStatus(1, { status_id: 4 }, mockUser)).rejects.toThrow('Ação 1 não encontrada');
+  });
+
+  it('transitionStatus - forbidden status transition', async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [{ status_id: 1 }] });
+    const user = { pgd_acao_visao: 'GD', permissoes: [] };
+    await expect(service.transitionStatus(1, { status_id: 4 }, user as any)).rejects.toThrow('Sem permissão para mover para o status 4');
+  });
+
+  it('transitionStatus - invalid state machine transition', async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [{ status_id: 1 }] }); // Current: 1
+    const user = { pgd_acao_visao: 'GD', permissoes: [20] }; // Target: 20
+    await expect(service.transitionStatus(1, { status_id: 20 }, user as any)).rejects.toThrow('Transição de 1 para 20 não permitida');
+  });
+
+  it('transitionStatus - missing justificativa', async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [{ status_id: 1 }] });
+    const user = { pgd_acao_visao: 'ADM', permissoes: [7] };
+    await expect(service.transitionStatus(1, { status_id: 7 }, user as any)).rejects.toThrow('Justificativa obrigatória para esta transição');
+  });
+
+  it('transitionStatus - fallback hasJustificativaCol false and db error', async () => {
+    (service as any).hasJustificativaCol = false;
+    mockPool.query.mockResolvedValueOnce({ rows: [{ status_id: 1 }] });
+    mockClient.query
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // lock
+      .mockResolvedValueOnce({ rows: [{ next_id: 1 }] })
+      .mockResolvedValueOnce({ rows: [{ nome: 'test' }] })
+      .mockRejectedValueOnce(new Error('insert fail'));
+
+    await expect(service.transitionStatus(1, { status_id: 4 }, mockUser)).rejects.toThrow('insert fail');
+    expect(mockClient.query).toHaveBeenCalledWith('ROLLBACK');
+  });
+  it('transitionStatus - trigger SMTP notification', async () => {
+    process.env.SMTP_HOST = 'smtp.test';
+    process.env.SMTP_USER = 'user';
+    process.env.SMTP_PASS = 'pass';
+    mockPool.query.mockResolvedValueOnce({
+      rows: [{ status_id: 1, autor_email: 'autor@ex.com', gerente_email: 'gerente@ex.com' }]
+    });
+    mockClient.query
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // lock
+      .mockResolvedValueOnce({ rows: [{ next_id: 1 }] })
+      .mockResolvedValueOnce({ rows: [{ nome: 'test' }] })
+      .mockResolvedValueOnce({ rows: [] }) // insert status
+      .mockResolvedValueOnce({ rows: [] }); // commit
+    
+    const userAdmin = { pgd_acao_visao: 'ADM', permissoes: [7] };
+    const res = await service.transitionStatus(1, { status_id: 7, justificativa: 'test' }, userAdmin as any);
+    expect(res.ok).toBe(true);
+    
+    delete process.env.SMTP_HOST;
+    delete process.env.SMTP_USER;
+    delete process.env.SMTP_PASS;
+  });
 });
